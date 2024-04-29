@@ -1,0 +1,142 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <windows.h>
+
+#define MAX_PATH_LENGTH 100
+
+// Node structure for a song
+typedef struct Song {
+    char title[50];
+    char artist[50];
+    char file_path[MAX_PATH_LENGTH];
+    struct Song* next;
+    struct Song* prev;
+} Song;
+
+Song* currentSong = NULL;
+int isPaused = 0; // Variable to track pause state
+
+void playSong(const char *filePath) {
+    char command[200];
+    // Use wmplayer to play the song
+    sprintf(command, "start wmplayer.exe /play /close \"%s\"", filePath);
+    system(command);
+}
+
+void stopSong() {
+    // Send command to stop the media player
+    system("taskkill /F /IM wmplayer.exe > nul");
+}
+
+void pauseSong() {
+    // Send command to pause the media player
+    HWND hWnd = FindWindow(NULL, "Windows Media Player");
+    if (hWnd != NULL) {
+        SendMessage(hWnd, WM_COMMAND, 0x00004978, 0); // WM_COMMAND for play/pause
+        isPaused = 1; // Set paused state
+    } else {
+        printf("Media player window not found.\n");
+    }
+}
+
+void resumeSong() {
+    // Send command to resume the media player
+    if (isPaused) {
+        HWND hWnd = FindWindow(NULL, "Windows Media Player");
+        if (hWnd != NULL) {
+            SendMessage(hWnd, WM_COMMAND, 0x00004978, 0); // WM_COMMAND for play/pause
+            isPaused = 0; // Reset paused state
+        } else {
+            printf("Media player window not found.\n");
+        }
+    } else {
+        printf("Song is not paused.\n");
+    }
+}
+
+void forwardSong() {
+    if (currentSong != NULL && currentSong->next != NULL) {
+        currentSong = currentSong->next;
+        playSong(currentSong->file_path);
+    } else {
+        printf("No next song available.\n");
+    }
+}
+
+void backwardSong() {
+    if (currentSong != NULL && currentSong->prev != NULL) {
+        currentSong = currentSong->prev;
+        playSong(currentSong->file_path);
+    } else {
+        printf("No previous song available.\n");
+    }
+}
+
+int main() {
+    // Initialize the song path before execution
+    char filePath[MAX_PATH_LENGTH] = "C:\\Users\\DELL\\Downloads\\Be Free - Vidya Vox(mp3fix.in).mp3";
+    int choice;
+
+    // Sample playlist for testing
+    Song song1 = {"Song 1", "Artist 1", "C:\\Users\\DELL\\Downloads\\Be Free - Vidya Vox(mp3fix.in).mp3", NULL, NULL};
+    Song song2 = {"Song 2", "Artist 2", "C:\\Users\\DELL\\Downloads\\Shape-of-You---Ed-Sheeran(musicdownload.cc).mp3", NULL, NULL};
+    Song song3 = {"Song 3", "Artist 3", "C:\\Users\\DELL\\Downloads\\Heeriye-(PagalWorld).mp3", NULL, NULL};
+
+    // Set up circular doubly linked list
+    song1.next = &song2;
+    song1.prev = &song3;
+    song2.next = &song3;
+    song2.prev = &song1;
+    song3.next = &song1;
+    song3.prev = &song2;
+
+    currentSong = &song1;
+
+    do {
+        printf("+----------------------+\n");
+        printf("|   Songs Player GUI   |\n");
+        printf("+----------------------+\n");
+        printf("| 1. Play              |\n");
+        printf("| 2. Pause             |\n");
+        printf("| 3. Resume            |\n");
+        printf("| 4. Stop              |\n");
+        printf("| 5. Forward           |\n");
+        printf("| 6. Backward          |\n");
+        printf("| 7. Exit              |\n");
+        printf("+----------------------+\n");
+        printf("Enter your choice: ");
+        scanf("%d", &choice);
+
+        switch (choice) {
+            case 1:
+                playSong(filePath);
+                break;
+            case 2:
+                pauseSong();
+                break;
+            case 3:
+                resumeSong();
+                break;
+            case 4:
+                stopSong();
+                break;
+            case 5:
+                forwardSong();
+                break;
+            case 6:
+                backwardSong();
+                break;
+            case 7:
+                printf("Exiting the Songs Player. Goodbye!\n");
+                // Stop the song before exiting
+                stopSong();
+                break;
+            default:
+                printf("Invalid choice. Try again.\n");
+        }
+    } while (choice != 7);
+    
+    return 0;
+}
+
